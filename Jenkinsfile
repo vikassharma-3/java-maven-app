@@ -1,56 +1,29 @@
-def gv
-
 pipeline {
     agent any
-
-    parameters{
-        choice(name: 'Version', choices: ['1.1.0','1.1.1','1.1.2'], description: 'Select Version')
-        booleanParam(name: 'executeTest',defaultValue: true, description: '')
+    tools {
+        maven 'Maven'
     }
     stages {
-        stage("init") {
-            steps {
-                script {
-                    gv = load "script.groovy"
-                }
-            }
-        }
         stage("build jar") {
             steps {
-                script {
-                    echo "building jar"
-                    //gv.buildJar()
-                }
+                echo "building the application"
+                sh 'mvn package'
             }
         }
-        stage("Test image") {
-            when {
-                expression{
-                    params.executeTest
-                }
-            }
+        stage("build images") {
             steps {
-                script {
-                    echo "building image"
-                    //gv.buildImage()
-                }
-            }
-        }        
-        stage("build image") {
-            steps {
-                script {
-                    echo "building image"
-                    //gv.buildImage()
+                echo "building the images"
+                withCredentials([usernamePassword(credentialsId: 'Docker hub repo', passwordVariable: 'PASS', usernameVariable: 'USER')]){
+                    sh 'docker build -t psychovik/demo-app:jma-2.0 .'
+                    sh "echo $PASS | docker login -u $USER --password-stdin"
+                    sh 'docker push psychovik/demo-app:jma-2.0'
                 }
             }
         }
         stage("deploy") {
             steps {
-                script {
-                    echo "deploying"
-                    //gv.deployApp()
-                }
+                echo "deploy the application"
             }
         }
-    }   
+    }
 }
